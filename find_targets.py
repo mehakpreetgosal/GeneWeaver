@@ -1,28 +1,7 @@
 """
 find_targets.py - build a trusted "answer key" for GeneWeaver using ONLY exact string matching.
-
-Idea: exact matching with str.find() is simple and fast, so we can trust it.
-To get known hits WITH mismatches, we deliberately mutate the guide (1, 2, 3 letters),
-then search the genome for those mutated versions exactly. Any exact hit of a variant
-is a real site that differs from the guide by exactly that many mismatches.
-
-Conventions (write these in your README, keep them identical in every module):
-  * Positions are 0-based, on the FORWARD strand of the chromosome.
-  * Position = index of the first base of the 20-letter protospacer (as seen on the forward strand).
-  * strand '+': forward text reads  [20-mer][N G G]
-  * strand '-': forward text reads  [C C N][revcomp of 20-mer]; position is the start of the
-                revcomp 20-mer (i.e. just after the CCN).
-  * Windows (including the PAM) containing 'N' are skipped.
-  * Lowercase (soft-masked) bases are treated as normal bases.
-
-Usage:
-  # 1) pick a guide from a region of the chromosome
-  python find_targets.py pick --fasta data/chr21.fa --start 20000000 --end 21000000
-
-  # 2) build the answer key for that guide
-  python find_targets.py key --fasta data/chr21.fa --guide GACGCATAAAGATGAGACGC \
-        --start 20000000 --end 22000000 --out answer_key.json
 """
+
 import argparse
 import json
 import random
