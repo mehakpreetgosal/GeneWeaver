@@ -1,28 +1,7 @@
 """
 parser.py - GeneWeaver genomic parser: FASTA -> encoded, overlapping, globally-addressed chunks.
-
-Encoding:  A=0  C=1  G=2  T=3  N=4 (anything else, e.g. R/Y/K/M, is also treated as N).
-           Lowercase (soft-masked repeats) is real DNA and maps to the same codes as uppercase.
-
-Conventions (same as find_targets.py):
-  * Coordinates are 0-based, forward strand.
-  * A "window" is GUIDE_LEN + PAM_LEN = 23 bases starting at window-start w.
-        + strand: [20-mer][NGG]  -> hit position = w
-        - strand: [CCN][revcomp 20-mer] -> hit position = w + 3
-  * Windows containing N are skipped by the search code (the parser only supplies code 4).
-
-Chunking and ownership:
-  * Each chunk holds chunk_size bases + OVERLAP extra bases from the next chunk.
-  * OVERLAP = WINDOW_LEN - 1 = 22, so any 23-base window that straddles a boundary lies fully
-    inside one chunk.
-  * To avoid reporting the same hit twice, a chunk "owns" only the windows whose START index is
-    in [0, n_owned). The search code must ignore window starts >= n_owned.
-  * Chunks that are entirely N are skipped (chr21 begins with millions of N).
-
-Memory note: SeqIO.parse loads one whole record (chromosome) into RAM. That is fine for chr21/22
-(~50 MB). For chr1 (~250 MB) it still works with a few GB of RAM. For the full genome, records
-are processed one chromosome at a time, so peak memory is the largest chromosome.
 """
+
 from dataclasses import dataclass
 from typing import Iterator
 
