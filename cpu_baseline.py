@@ -61,8 +61,42 @@ def search_chunk(chunk: Chunk, guide: bytes, guide_rc: bytes, max_mm: int):
     return hits
 
 
-def search_chunks(chunks, guide: str, max_mm: int):
-    """Search an iterable of Chunk objects; returns a sorted hit list."""
+def search_chunk_naive(chunk: Chunk, guide: bytes, guide_rc: bytes, max_mm: int):
+    """
+    Textbook version: for EVERY window, run the 20-letter mismatch loop first (early exit),
+    and only check the PAM afterwards. No PAM pre-filter, no N-slice shortcut: this is what
+    "standard Python loops" means in the project brief, and it is also the order the GPU kernel
+    works in. Results are identical to search_chunk(); only the speed differs.
+    """
+    data = chunk.data.tobytes()
+    hits = []
+    last_start = min(chunk.n_owned, len(data) - WINDOW_LEN + 1)
+    for w in range(last_start):
+        # forward: compare 20-mer, then PAM, then N-check
+        mm = 0
+        for j in range(GUIDE_LEN):
+            if data[w + j] != guide[j]:
+                mm += 1
+                if mm > max_mm:
+                    break
+        if mm <= max_mm and data[w + 21] == G and data[w + 22] == G \
+                and N not in data[w:w + WINDOW_LEN]:
+            hits.append((chunk.chrom, chunk.start + w, "+", mm))
+        # reverse: compare revcomp 20-mer, then CC, then N-check
+        mm = 0
+        for j in range(GUIDE_LEN):
+            if data[w + 3 + j] != guide_rc[j]:
+                mm += 1
+                if mm > max_mm:
+                    break
+        if mm <= max_mm and data[w] == C and data[w + 1] == C \
+                and N not in data[w:w + WINDOW_LEN]:
+            hits.append((chunk.chrom, chunk.start + w + 3, "-", mm))
+    return hits
+
+
+def search_chunks(chunks, guide: str, max_mm: int, naive: bool = False):
+    """Search an iterable of Chunk objects; returns a sorted hit list. naive=True uses the textbook loop."""
     if len(guide) != GUIDE_LEN:
         raise ValueError(f"guide must be {GUIDE_LEN} letters")
     g = encode(guide.upper())
@@ -70,9 +104,10 @@ def search_chunks(chunks, guide: str, max_mm: int):
         raise ValueError("guide must contain only A/C/G/T")
     guide_b = g.tobytes()
     guide_rc_b = reverse_complement(g).tobytes()
+    fn = search_chunk_naive if naive else search_chunk
     hits = []
     for ch in chunks:
-        hits.extend(search_chunk(ch, guide_b, guide_rc_b, max_mm))
+        hits.extend(fn(ch, guide_b, guide_rc_b, max_mm))
     return sorted(hits, key=lambda h: (h[0], h[1], h[2]))
 
 
@@ -119,3 +154,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
