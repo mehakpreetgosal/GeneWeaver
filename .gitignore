@@ -1,0 +1,18 @@
+# genomes and large outputs - never commit these
+data/
+*.fa
+*.fasta
+*.fa.gz
+*.fasta.gz
+*.2bit
+
+# generated results
+answer_key.json
+benchmark_results.json
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
